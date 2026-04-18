@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MockMate - AI Mock Interview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    body { font-family: 'Space Grotesk', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    .input-field { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: white; }
+    .input-field:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,0.2); }
+    .input-field::placeholder { color: rgba(255,255,255,0.35); }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+    .tab-active { border-bottom: 2px solid #818cf8; color: #818cf8; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-white">MockPrep</h1>
+      <p class="text-indigo-300 mt-1">AI-Powered Mock Interviews</p>
+    </div>
+
+    <!-- Auth Card -->
+    <div class="glass rounded-2xl p-8">
+      <!-- Tabs -->
+      <div class="flex mb-6 border-b border-white/10">
+        <button id="loginTab"
+          onclick="switchTab('login')"
+          class="flex-1 pb-3 text-sm font-semibold tab-active transition-all">
+          Login
+        </button>
+        <button id="registerTab"
+          onclick="switchTab('register')"
+          class="flex-1 pb-3 text-sm font-semibold text-white/50 transition-all">
+          Register
+        </button>
+      </div>
+
+      <!-- Error/Success Message -->
+      <div id="msgBox" class="hidden mb-4 p-3 rounded-lg text-sm font-medium"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-white/70 text-sm mb-1">Email</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com"
+              class="input-field w-full px-4 py-3 rounded-xl text-sm" required />
+          </div>
+          <div>
+            <label class="block text-white/70 text-sm mb-1">Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••"
+              class="input-field w-full px-4 py-3 rounded-xl text-sm" required />
+          </div>
+          <button type="submit" id="loginBtn"
+            class="btn-primary w-full py-3 rounded-xl text-white font-semibold text-sm mt-2">
+            Login to your account
+          </button>
+        </div>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-white/70 text-sm mb-1">Full Name</label>
+            <input type="text" id="regName" placeholder="John Doe"
+              class="input-field w-full px-4 py-3 rounded-xl text-sm" required />
+          </div>
+          <div>
+            <label class="block text-white/70 text-sm mb-1">Email</label>
+            <input type="email" id="regEmail" placeholder="you@example.com"
+              class="input-field w-full px-4 py-3 rounded-xl text-sm" required />
+          </div>
+          <div>
+            <label class="block text-white/70 text-sm mb-1">Password</label>
+            <input type="password" id="regPassword" placeholder="Min 6 characters"
+              class="input-field w-full px-4 py-3 rounded-xl text-sm" required />
+          </div>
+          <button type="submit" id="registerBtn"
+            class="btn-primary w-full py-3 rounded-xl text-white font-semibold text-sm mt-2">
+            Create Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+  <script>
+    // Agar already logged in hai toh dashboard pe bhejo
+    if (api.isLoggedIn()) window.location.href = "pages/dashboard.html";
+
+    // Tab switch karo
+    function switchTab(tab) {
+      const isLogin = tab === "login";
+      document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
+      document.getElementById("registerForm").classList.toggle("hidden", isLogin);
+      document.getElementById("loginTab").classList.toggle("tab-active", isLogin);
+      document.getElementById("registerTab").classList.toggle("tab-active", !isLogin);
+      document.getElementById("loginTab").classList.toggle("text-white/50", !isLogin);
+      document.getElementById("registerTab").classList.toggle("text-white/50", isLogin);
+      hideMsg();
+    }
+
+    // Message show karo
+    function showMsg(msg, isError = true) {
+      const box = document.getElementById("msgBox");
+      box.textContent = msg;
+      box.className = `mb-4 p-3 rounded-lg text-sm font-medium ${
+        isError ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                : "bg-green-500/20 text-green-300 border border-green-500/30"
+      }`;
+      box.classList.remove("hidden");
+    }
+
+    function hideMsg() {
+      document.getElementById("msgBox").classList.add("hidden");
+    }
+
+    // --- Login ---
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById("loginBtn");
+      btn.textContent = "Logging in...";
+      btn.disabled = true;
+
+      try {
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+
+        const data = await api.login(email, password);
+        api.setAuth(data.token, data.user);
+        showMsg("Login successful! Redirecting...", false);
+        setTimeout(() => window.location.href = "pages/dashboard.html", 800);
+      } catch (err) {
+        showMsg(err.message);
+        btn.textContent = "Login to your account";
+        btn.disabled = false;
+      }
+    }
+
+    // --- Register ---
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById("registerBtn");
+      btn.textContent = "Creating account...";
+      btn.disabled = true;
+
+      try {
+        const name = document.getElementById("regName").value;
+        const email = document.getElementById("regEmail").value;
+        const password = document.getElementById("regPassword").value;
+
+        if (password.length < 6) {
+          showMsg("Password must be at least 6 characters");
+          btn.textContent = "Create Account";
+          btn.disabled = false;
+          return;
+        }
+
+        const data = await api.register(name, email, password);
+        api.setAuth(data.token, data.user);
+        showMsg("Account created! Redirecting...", false);
+        setTimeout(() => window.location.href = "pages/dashboard.html", 800);
+      } catch (err) {
+        showMsg(err.message);
+        btn.textContent = "Create Account";
+        btn.disabled = false;
+      }
+    }
+    </script>
+</body>
+</html>
