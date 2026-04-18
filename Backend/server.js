@@ -32,6 +32,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/resume", require("./routes/resume.routes"));
 app.use("/api/interview", require("./routes/interview.routes"));
+app.use("/api/analysis", require("./routes/analysis.routes"));
+
 
 app.get("/", (req, res) => {
     res.json({ message: "Mock Interview API is running" });
