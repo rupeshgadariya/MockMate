@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - MockPrep</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    body { font-family: 'Space Grotesk', sans-serif; background: #0f0f1a; color: white; }
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+    .card-hover { transition: all 0.3s; }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(129,140,248,0.4); }
+    .upload-zone { border: 2px dashed rgba(255,255,255,0.2); transition: all 0.3s; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #818cf8; background: rgba(129,140,248,0.07); }
+    .status-badge { font-size: 11px; padding: 2px 10px; border-radius: 20px; }
+    .badge-done { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+    .badge-progress { background: rgba(251,191,36,0.15); color: #fde68a; border: 1px solid rgba(251,191,36,0.3); }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="glass border-b border-white/5 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </div>
+      <span class="font-bold text-lg">MockMate</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span id="userName" class="text-white/60 text-sm"></span>
+      <button onclick="logout()"
+        class="text-sm text-white/50 hover:text-white transition-colors px-3 py-1 rounded-lg hover:bg-white/5">
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-4 py-10">
+
+    <!-- Welcome Banner -->
+    <div class="glass rounded-2xl p-6 mb-8 flex items-center justify-between"
+      style="background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15));">
+      <div>
+        <h2 class="text-2xl font-bold mb-1">Welcome , <span id="welcomeName">User</span> 👋</h2>
+        <p class="text-white/50 text-sm">Upload your resume and start a mock interview to practice</p>
+      </div>
+      <div class="hidden md:block text-6xl">🎯</div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+      <!-- Resume Upload Card -->
+      <div class="md:col-span-1 glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-4 flex items-center gap-2">
+          <span class="text-indigo-400">📄</span> Resume
+        </h3>
+
+        <!-- Resume status -->
+        <div id="resumeStatus" class="mb-4 p-3 rounded-xl bg-white/5 text-sm text-white/50">
+          Checking resume...
+        </div>
+
+        <!-- Upload zone -->
+        <div id="uploadZone" class="upload-zone rounded-xl p-5 text-center cursor-pointer mb-3"
+          onclick="document.getElementById('resumeInput').click()"
+          ondragover="handleDragOver(event)"
+          ondrop="handleDrop(event)"
+          ondragleave="this.classList.remove('dragover')">
+          <div class="text-3xl mb-2">📎</div>
+          <p class="text-white/50 text-xs">Click or drag PDF here</p>
+          <p class="text-white/30 text-xs mt-1">Max 5MB</p>
+        </div>
+        <input type="file" id="resumeInput" accept=".pdf" class="hidden" onchange="handleFileSelect(event)"/>
+
+        <button id="uploadBtn" onclick="uploadResume()" disabled
+          class="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-indigo-700 transition-colors">
+          Upload Resume
+        </button>
+        <p id="uploadMsg" class="text-xs text-center mt-2 text-white/40"></p>
+      </div>
+
+      <!-- Start Interview Card -->
+      <div class="md:col-span-2 glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-4 flex items-center gap-2">
+          <span class="text-green-400">🎤</span> Start Mock Interview
+        </h3>
+
+        <div class="mb-4">
+          <label class="block text-white/60 text-sm mb-2">Job Role / Position</label>
+          <input id="jobRole" type="text" placeholder="e.g. Software Engineer, Data Analyst, Product Manager"
+            class="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30"
+            style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15);"
+            value="Software Engineer"/>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-white/60 text-sm mb-2">Interview Mode</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="cursor-pointer">
+              <input type="radio" name="interviewType" value="text" checked class="hidden peer"/>
+              <div class="peer-checked:border-indigo-500 peer-checked:bg-indigo-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:border-white/30">
+                <div class="text-2xl mb-1">💬</div>
+                <div class="text-sm font-medium">Text Mode</div>
+                <div class="text-xs text-white/40 mt-1">Type your answers</div>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="interviewType" value="voice" class="hidden peer"/>
+              <div class="peer-checked:border-indigo-500 peer-checked:bg-indigo-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:border-white/30">
+                <div class="text-2xl mb-1">🎙️</div>
+                <div class="text-sm font-medium">Voice Mode</div>
+                <div class="text-xs text-white/40 mt-1">Speak your answers</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <button id="startBtn" onclick="startInterview()"
+          class="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all"
+          style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+          🚀 Start Mock Interview
+        </button>
+        <p id="startMsg" class="text-xs text-center mt-2 text-red-400 hidden"></p>
+      </div>
+    </div>
+
+    <!-- Interview History -->
+    <div class="glass rounded-2xl p-6">
+      <h3 class="font-semibold mb-5 flex items-center gap-2">
+        <span class="text-yellow-400">📊</span> Interview History
+      </h3>
+      <div id="historyList">
+        <div class="text-center text-white/30 py-8 text-sm">Loading history...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auth check - login nahi hai toh wapas
+    if (!api.isLoggedIn()) window.location.href = "../index.html";
+
+    let selectedFile = null;
+
+    // Page load pe user info aur history load karo
+    window.onload = async () => {
+      const user = api.getUser();
+      if (user) {
+        document.getElementById("userName").textContent = user.name;
+        document.getElementById("welcomeName").textContent = user.name.split(" ")[0];
+      }
+      await loadResumeInfo();
+      await loadHistory();
+    };
+
+    // Resume info load karo
+    async function loadResumeInfo() {
+      try {
+        const data = await api.getResumeInfo();
+        const statusEl = document.getElementById("resumeStatus");
+        if (data.hasResume) {
+          statusEl.innerHTML = `<span class="text-green-400 font-medium">✅ Resume uploaded</span><br/>
+            <span class="text-white/30 text-xs">${data.textPreview}</span>`;
+        } else {
+          statusEl.innerHTML = `<span class="text-yellow-400">⚠️ No resume uploaded yet</span>`;
+        }
+      } catch (err) {
+        document.getElementById("resumeStatus").textContent = "Could not load resume info";
+      }
+    }
+
+    // File drag-drop
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById("uploadZone").classList.add("dragover");
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById("uploadZone").classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === "application/pdf") {
+        setFile(file);
+      } else {
+        alert("Please drop a PDF file only");
+      }
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) setFile(file);
+    }
+
+    function setFile(file) {
+      selectedFile = file;
+      document.getElementById("uploadZone").innerHTML = `
+        <div class="text-2xl mb-1">✅</div>
+        <p class="text-green-400 text-xs font-medium">${file.name}</p>
+        <p class="text-white/30 text-xs">${(file.size / 1024).toFixed(0)} KB</p>`;
+      document.getElementById("uploadBtn").disabled = false;
+    }
+
+    // Resume upload
+    async function uploadResume() {
+      if (!selectedFile) return;
+      const btn = document.getElementById("uploadBtn");
+      const msg = document.getElementById("uploadMsg");
+      btn.textContent = "Uploading...";
+      btn.disabled = true;
+
+      try {
+        await api.uploadResume(selectedFile);
+        msg.textContent = "✅ Uploaded successfully!";
+        msg.className = "text-xs text-center mt-2 text-green-400";
+        await loadResumeInfo();
+      } catch (err) {
+        msg.textContent = "❌ " + err.message;
+        msg.className = "text-xs text-center mt-2 text-red-400";
+        btn.disabled = false;
+      } finally {
+        btn.textContent = "Upload Resume";
+      }
+    }
+
+    // Interview start karo
+    async function startInterview() {
+      const jobRole = document.getElementById("jobRole").value.trim();
+      const type = document.querySelector('input[name="interviewType"]:checked').value;
+      const btn = document.getElementById("startBtn");
+      const msg = document.getElementById("startMsg");
+
+      if (!jobRole) {
+        msg.textContent = "Please enter a job role";
+        msg.classList.remove("hidden");
+        return;
+      }
+
+      btn.textContent = "Starting...";
+      btn.disabled = true;
+      msg.classList.add("hidden");
+
+      try {
+        const data = await api.startInterview(jobRole, type);
+        // Interview ID aur question URL me pass karo
+        window.location.href = `interview.html?id=${data.interviewId}&type=${type}&q=${encodeURIComponent(data.question)}&qNum=1`;
+      } catch (err) {
+        msg.textContent = "❌ " + err.message;
+        msg.classList.remove("hidden");
+        btn.textContent = "🚀 Start Mock Interview";
+        btn.disabled = false;
+      }
+    }
+
+    // History load karo
+    async function loadHistory() {
+      try {
+        const data = await api.getInterviewHistory();
+        const el = document.getElementById("historyList");
+
+        if (!data.interviews || data.interviews.length === 0) {
+          el.innerHTML = `<div class="text-center text-white/30 py-8 text-sm">No interviews yet. Start your first mock interview! 🎯</div>`;
+          return;
+        }
+
+        el.innerHTML = data.interviews.map(iv => `
+          <div class="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/15 flex items-center justify-center text-lg">
+                ${iv.type === "voice" ? "🎙️" : "💬"}
+              </div>
+              <div>
+                <div class="text-sm font-medium">${iv.jobRole}</div>
+                <div class="text-xs text-white/40">${new Date(iv.createdAt).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              ${iv.status === "completed"
+                ? `<span class="status-badge badge-done">Completed</span>`
+                : `<span class="status-badge badge-progress">In Progress</span>`}
+              ${iv.analysis?.overallScore > 0
+                ? `<span class="text-sm font-bold text-indigo-400">${iv.analysis.overallScore}/100</span>` : ""}
+              ${iv.status === "completed"
+                ? `<button onclick="viewAnalysis('${iv._id}')" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600/50 transition-colors">View Report</button>`
+                : `<button onclick="continueInterview('${iv._id}')" class="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/50 hover:bg-white/10 transition-colors">Continue</button>`}
+            </div>
+          </div>`).join("");
+      } catch (err) {
+        document.getElementById("historyList").innerHTML = `<div class="text-center text-red-400 py-4 text-sm">Error loading history</div>`;
+      }
+    }
+
+    function viewAnalysis(id) {
+      window.location.href = `analysis.html?id=${id}`;
+    }
+
+    function continueInterview(id) {
+      window.location.href = `interview.html?id=${id}&resume=true`;
+    }
+
+    function logout() {
+      api.clearAuth();
+      window.location.href = "../index.html";
+    }
+  </script>
+</body>
+</html>
