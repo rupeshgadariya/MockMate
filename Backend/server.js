@@ -1,10 +1,14 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
-const path = require("path");
 require("dotenv").config();
-
 const app = express();
+
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/api/auth", require("./routes/auth.routes"));
+app.use("/api/resume", require("./routes/resume.routes"));
 
 app.get("/", (req, res) => {
     res.json({ message: "Mock Interview API is running" });
