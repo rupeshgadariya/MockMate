@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interview - MockMate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    body { font-family: 'Space Grotesk', sans-serif; background: #0f0f1a; color: white; }
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+    .msg-ai { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.2); border-radius: 4px 16px 16px 16px; }
+    .msg-user { background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.2); border-radius: 16px 4px 16px 16px; }
+    textarea { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: white; resize: none; transition: border-color 0.2s; }
+    textarea:focus { outline: none; border-color: #818cf8; }
+    textarea::placeholder { color: rgba(255,255,255,0.3); }
+    .progress-fill { height: 4px; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 2px; transition: width 0.5s ease; }
+    @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
+    .recording { animation: pulse-ring 1.2s ease-in-out infinite; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    .dot { display:inline-block; width:6px; height:6px; background:#818cf8; border-radius:50%; animation: bounce 1.2s infinite; }
+    .dot:nth-child(2){animation-delay:.2s}
+    .dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <nav class="glass border-b border-white/5 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <button onclick="confirmExit()" class="text-white/50 hover:text-white transition-colors text-sm flex items-center gap-1">
+        ← Exit
+      </button>
+      <span class="text-white/20">|</span>
+      <span class="font-semibold text-sm" id="jobRoleDisplay">Mock Interview</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="modeTag" class="text-xs px-2.5 py-1 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-600/30"></span>
+      <span id="questionCounter" class="text-xs text-white/40"></span>
+    </div>
+  </nav>
+
+  <!-- Progress Bar -->
+  <div class="h-1 bg-white/5">
+    <div class="progress-fill" id="progressBar" style="width:0%"></div>
+  </div>
+
+  <!-- Chat Container -->
+  <div class="flex-1 max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-4 overflow-y-auto" id="chatContainer">
+    <!-- Messages yahan aayenge -->
+  </div>
+
+  <!-- Typing indicator -->
+  <div id="typingIndicator" class="hidden max-w-3xl mx-auto w-full px-4 pb-2">
+    <div class="flex items-center gap-2 text-white/40 text-sm">
+      <div class="flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <span>AI is thinking...</span>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="glass border-t border-white/5 p-4" id="inputArea">
+    <div class="max-w-3xl mx-auto">
+
+      <!-- TEXT MODE input -->
+      <div id="textInput">
+        <textarea id="answerText" rows="3"
+          placeholder="Type your answer here... (Shift+Enter for new line, Enter to submit)"
+          class="w-full px-4 py-3 rounded-xl text-sm mb-3"
+          onkeydown="handleKeyDown(event)"></textarea>
+        <div class="flex gap-3">
+          <button onclick="submitTextAnswer()"
+            class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
+            style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"
+            id="submitBtn">
+            Send Answer ➤
+          </button>
+        </div>
+      </div>
+
+      <!-- VOICE MODE input -->
+      <div id="voiceInput" class="hidden text-center">
+        <p class="text-white/50 text-sm mb-4" id="voiceStatus">Press mic to start speaking</p>
+        <button onclick="toggleRecording()" id="micBtn"
+          class="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 transition-all"
+          style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+          🎙️
+        </button>
+        <div id="transcript" class="glass rounded-xl p-3 text-sm text-white/70 min-h-12 mb-4 text-left hidden"></div>
+        <button onclick="submitVoiceAnswer()" id="submitVoiceBtn"
+          class="hidden py-2.5 px-8 rounded-xl font-semibold text-sm text-white"
+          style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+          Submit Answer ✓
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Completion Modal -->
+  <div id="completionModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="glass rounded-2xl p-8 max-w-md w-full text-center">
+      <div class="text-5xl mb-4">🎉</div>
+      <h2 class="text-2xl font-bold mb-2">Interview Complete!</h2>
+      <p class="text-white/60 text-sm mb-6">Great job! Now let's generate your performance analysis report.</p>
+      <button onclick="generateAndViewAnalysis()"
+        class="w-full py-3 rounded-xl font-semibold text-white mb-3"
+        style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"
+        id="analyzeBtn">
+        📊 Generate Analysis Report
+      </button>
+      <button onclick="window.location.href='dashboard.html'"
+        class="w-full py-3 rounded-xl font-semibold text-white/50 hover:text-white transition-colors text-sm">
+        Go to Dashboard
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Auth check
+    if (!api.isLoggedIn()) window.location.href = "../index.html";
+
+    // URL se params lo
+    const params = new URLSearchParams(window.location.search);
+    let interviewId = params.get("id");
+    let interviewType = params.get("type") || "text";
+    let firstQuestion = params.get("q");
+    let currentQNum = parseInt(params.get("qNum")) || 1;
+    const TOTAL_QUESTIONS = 5;
+
+    let isRecording = false;
+    let recognition = null;
+    let currentTranscript = "";
+
+    // Page init
+    window.onload = () => {
+      setupUI();
+      if (firstQuestion) {
+        addAIMessage(firstQuestion);
+      }
+    };
+
+    function setupUI() {
+      // Job role display
+      const jobRole = localStorage.getItem("lastJobRole") || "Mock Interview";
+      document.getElementById("jobRoleDisplay").textContent = jobRole;
+
+      // Mode tag
+      document.getElementById("modeTag").textContent = interviewType === "voice" ? "🎙️ Voice Mode" : "💬 Text Mode";
+
+      // Mode ke hisaab se input show karo
+      if (interviewType === "voice") {
+        document.getElementById("textInput").classList.add("hidden");
+        document.getElementById("voiceInput").classList.remove("hidden");
+        setupSpeechRecognition();
+      }
+
+      updateProgress();
+    }
+
+    // Progress bar update karo
+    function updateProgress() {
+      const pct = ((currentQNum - 1) / TOTAL_QUESTIONS) * 100;
+      document.getElementById("progressBar").style.width = pct + "%";
+      document.getElementById("questionCounter").textContent = `Q ${currentQNum} / ${TOTAL_QUESTIONS}`;
+    }
+
+    // AI message add karo chat me
+    function addAIMessage(text) {
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "fade-in flex gap-3 items-start";
+      div.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex-shrink-0 flex items-center justify-center text-xs font-bold mt-1">AI</div>
+        <div class="msg-ai px-4 py-3 text-sm leading-relaxed max-w-lg">${text}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // User message add karo
+    function addUserMessage(text) {
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "fade-in flex gap-3 items-start justify-end";
+      div.innerHTML = `
+        <div class="msg-user px-4 py-3 text-sm leading-relaxed max-w-lg">${text}</div>
+        <div class="w-8 h-8 rounded-full bg-green-600 flex-shrink-0 flex items-center justify-center text-xs font-bold mt-1">Me</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // Typing indicator show/hide
+    function showTyping(show) {
+      document.getElementById("typingIndicator").classList.toggle("hidden", !show);
+      document.getElementById("inputArea").classList.toggle("opacity-50", show);
+    }
+
+    // Enter key se submit
+    function handleKeyDown(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submitTextAnswer();
+      }
+    }
+
+    // Text answer submit
+    async function submitTextAnswer() {
+      const answerEl = document.getElementById("answerText");
+      const answer = answerEl.value.trim();
+      if (!answer) return;
+
+      answerEl.value = "";
+      addUserMessage(answer);
+      await processAnswer(answer);
+    }
+
+    // Answer process karo (text aur voice dono ke liye same)
+    async function processAnswer(answer) {
+      showTyping(true);
+      document.getElementById("submitBtn").disabled = true;
+
+      try {
+        const data = await api.submitAnswer(interviewId, answer);
+
+        showTyping(false);
+        document.getElementById("submitBtn").disabled = false;
+
+        if (data.isComplete) {
+          // Interview khatam!
+          document.getElementById("completionModal").classList.remove("hidden");
+          document.getElementById("inputArea").classList.add("opacity-40", "pointer-events-none");
+        } else {
+          // Agla question show karo
+          currentQNum = data.questionNumber;
+          updateProgress();
+          addAIMessage(data.question);
+          // Voice mode me auto bolne ki capability
+          if (interviewType === "voice" && "speechSynthesis" in window) {
+            speakText(data.question);
+          }
+        }
+      } catch (err) {
+        showTyping(false);
+        document.getElementById("submitBtn").disabled = false;
+        addAIMessage("❌ Error: " + err.message + ". Please try again.");
+      }
+    }
+
+    // =============================================
+    //   VOICE MODE - Web Speech API
+    // =============================================
+    function setupSpeechRecognition() {
+      if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+        document.getElementById("voiceStatus").textContent = "⚠️ Voice not supported in this browser. Use Chrome.";
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (e) => {
+        let transcript = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          transcript += e.results[i][0].transcript;
+        }
+        currentTranscript = transcript;
+        const transcriptEl = document.getElementById("transcript");
+        transcriptEl.textContent = transcript;
+        transcriptEl.classList.remove("hidden");
+      };
+
+      recognition.onend = () => {
+        isRecording = false;
+        document.getElementById("micBtn").classList.remove("recording");
+        document.getElementById("micBtn").textContent = "🎙️";
+        document.getElementById("voiceStatus").textContent = "Recording stopped";
+        if (currentTranscript) {
+          document.getElementById("submitVoiceBtn").classList.remove("hidden");
+        }
+      };
+
+      recognition.onerror = (e) => {
+        document.getElementById("voiceStatus").textContent = "❌ Error: " + e.error;
+        isRecording = false;
+      };
+    }
+
+    function toggleRecording() {
+      if (!recognition) return;
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        currentTranscript = "";
+        document.getElementById("transcript").classList.add("hidden");
+        document.getElementById("submitVoiceBtn").classList.add("hidden");
+        recognition.start();
+        isRecording = true;
+        document.getElementById("micBtn").classList.add("recording");
+        document.getElementById("micBtn").textContent = "⏹️";
+        document.getElementById("voiceStatus").textContent = "🔴 Recording... Speak now";
+      }
+    }
+
+    async function submitVoiceAnswer() {
+      if (!currentTranscript.trim()) return;
+      addUserMessage(currentTranscript);
+      document.getElementById("transcript").classList.add("hidden");
+      document.getElementById("submitVoiceBtn").classList.add("hidden");
+      currentTranscript = "";
+      await processAnswer(currentTranscript || "No answer provided");
+    }
+
+    // Text-to-speech for AI questions
+    function speakText(text) {
+      if ("speechSynthesis" in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // Analysis generate karo aur redirect karo
+    async function generateAndViewAnalysis() {
+      const btn = document.getElementById("analyzeBtn");
+      btn.textContent = "⏳ Generating... Please wait";
+      btn.disabled = true;
+
+      try {
+        await api.generateAnalysis(interviewId);
+        window.location.href = `analysis.html?id=${interviewId}`;
+      } catch (err) {
+        btn.textContent = "❌ Error. Try again.";
+        btn.disabled = false;
+      }
+    }
+
+    function confirmExit() {
+      if (confirm("Are you sure you want to exit? Interview progress will be lost.")) {
+        window.location.href = "dashboard.html";
+      }
+    }
+  </script>
+</body>
+</html>
