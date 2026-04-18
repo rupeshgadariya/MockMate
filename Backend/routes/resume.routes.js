@@ -4,7 +4,7 @@ const { uploadResume, getResumeInfo } = require("../controllers/resume.controlle
 const { protect } = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 
-router.post("/upload", protect, upload.single("resume"), uploadResume); // PDF upload
-router.get("/info", protect, getResumeInfo);                             // Resume info
+router.post("/upload", protect, upload.single("resume"), uploadResume);
+router.get("/info", protect, getResumeInfo);
 
 module.exports = router;

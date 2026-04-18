@@ -18,7 +18,6 @@ const startInterview = async (req, res) => {
             });
         }
 
-
         const prompt = `You are an expert interviewer. The candidate is interviewing for: ${jobRole || "Software Engineer"}.
     
 Here is the candidate's resume:
@@ -34,7 +33,6 @@ Return ONLY the question, nothing else.`;
         });
 
         const firstQuestion = completion.choices[0].message.content.trim();
-
 
         const interview = await Interview.create({
             user: req.user.id,
@@ -138,7 +136,6 @@ Make it progressively deeper. Return ONLY the question.`;
         res.status(500).json({ success: false, message: "Error processing answer" });
     }
 };
-
 
 const getInterviewHistory = async (req, res) => {
     try {

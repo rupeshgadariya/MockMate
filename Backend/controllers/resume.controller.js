@@ -5,7 +5,6 @@ const User = require("../models/user.model");
 
 const uploadResume = async (req, res) => {
   try {
-
     if (!req.file) {
       return res.status(400).json({
         success: false,

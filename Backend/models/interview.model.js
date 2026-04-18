@@ -37,7 +37,8 @@ const interviewSchema = new mongoose.Schema(
         analysis: {
             overallScore: { type: Number, default: 0 },
             strengths: [String],
-            improvements: [String], detailedFeedback: { type: String, default: "" },
+            improvements: [String],
+            detailedFeedback: { type: String, default: "" },
             skillScores: {
                 communication: { type: Number, default: 0 },
                 technicalKnowledge: { type: Number, default: 0 },

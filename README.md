@@ -174,7 +174,7 @@ Expected output:
 5. Add environment variables (same as `.env`)
 6. Deploy and obtain the API URL
 
-### Frontend Deployment (Netlify)
+### Frontend Deployment (Netlify/Vercel)
 
 1. Visit [netlify.com](https://netlify.com)
 2. Sign in with GitHub account

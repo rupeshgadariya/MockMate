@@ -7,7 +7,6 @@ const generateToken = (userId) => {
     });
 };
 
-
 const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -92,7 +91,6 @@ const login = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
-
 
 const getMe = async (req, res) => {
     try {
