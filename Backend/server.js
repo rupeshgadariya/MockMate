@@ -1,14 +1,37 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
+
 const app = express();
 
-app.use(express.json());
+const allowedOrigins = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    process.env.FRONTEND_URL
+].filter(Boolean);
 
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
+}));
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/resume", require("./routes/resume.routes"));
+app.use("/api/interview", require("./routes/interview.routes"));
 
 app.get("/", (req, res) => {
     res.json({ message: "Mock Interview API is running" });
