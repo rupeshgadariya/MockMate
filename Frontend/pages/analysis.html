@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Analysis Report - MockMate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    body { font-family: 'Space Grotesk', sans-serif; background: #0f0f1a; color: white; }
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+
+    /* Score Ring */
+    .score-ring { position: relative; width: 140px; height: 140px; }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-circle-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10; }
+    .score-circle { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1.5s ease; }
+    .score-number { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    /* Skill bars */
+    .skill-bar-fill { height: 8px; border-radius: 4px; transition: width 1.2s ease; width: 0; }
+
+    /* Print */
+    @media print {
+      nav, .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .glass { background: #f8f8f8 !important; border: 1px solid #ddd !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="glass border-b border-white/5 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+    <div class="flex items-center gap-3">
+      <button onclick="window.location.href='dashboard.html'" class="text-white/50 hover:text-white text-sm">← Dashboard</button>
+    </div>
+    <div class="flex items-center gap-3 no-print">
+      <button onclick="window.print()" class="text-xs px-4 py-2 rounded-lg border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all">
+        🖨️ Print Report
+      </button>
+    </div>
+  </nav>
+
+  <!-- Loading state -->
+  <div id="loadingState" class="flex items-center justify-center py-32">
+    <div class="text-center">
+      <div class="text-4xl mb-4 animate-spin">⏳</div>
+      <p class="text-white/50">Loading your analysis report...</p>
+    </div>
+  </div>
+
+  <!-- Main Report (hidden until loaded) -->
+  <div id="reportContent" class="hidden max-w-4xl mx-auto px-4 py-10">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <h1 class="text-3xl font-bold mb-2">Interview Analysis Report</h1>
+      <p class="text-white/50 text-sm" id="reportSubtitle">Powered by AI</p>
+    </div>
+
+    <!-- Score + Summary Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+      <!-- Overall Score -->
+      <div class="glass rounded-2xl p-6 flex flex-col items-center justify-center">
+        <div class="score-ring mb-3">
+          <svg viewBox="0 0 140 140" width="140" height="140">
+            <circle class="score-circle-bg" cx="70" cy="70" r="55"/>
+            <circle class="score-circle" id="scoreCircle" cx="70" cy="70" r="55"
+              stroke-dasharray="345.4" stroke-dashoffset="345.4"/>
+          </svg>
+          <div class="score-number">
+            <span class="text-3xl font-bold" id="scoreNumber">0</span>
+            <span class="text-xs text-white/40">/100</span>
+          </div>
+        </div>
+        <p class="text-sm font-medium text-white/70" id="scoreLabel">Overall Score</p>
+        <p class="text-xs text-white/40 mt-1" id="scoreGrade"></p>
+      </div>
+
+      <!-- Skill Scores -->
+      <div class="md:col-span-2 glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-5 text-white/80">Skill Breakdown</h3>
+        <div class="space-y-4" id="skillBars">
+          <!-- JS se inject hoga -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Strengths & Improvements -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+      <!-- Strengths -->
+      <div class="glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-4 flex items-center gap-2">
+          <span class="text-green-400 text-xl">✅</span> Strengths
+        </h3>
+        <ul id="strengthsList" class="space-y-3">
+          <!-- JS se inject -->
+        </ul>
+      </div>
+
+      <!-- Areas to Improve -->
+      <div class="glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-4 flex items-center gap-2">
+          <span class="text-yellow-400 text-xl">📈</span> Areas to Improve
+        </h3>
+        <ul id="improvementsList" class="space-y-3">
+          <!-- JS se inject -->
+        </ul>
+      </div>
+    </div>
+
+    <!-- Detailed Feedback -->
+    <div class="glass rounded-2xl p-6 mb-8">
+      <h3 class="font-semibold mb-4 flex items-center gap-2">
+        <span class="text-indigo-400 text-xl">💡</span> Detailed Feedback
+      </h3>
+      <p id="detailedFeedback" class="text-white/70 text-sm leading-relaxed whitespace-pre-line"></p>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center no-print">
+      <p class="text-white/40 text-sm mb-4">Ready to improve your performance?</p>
+      <button onclick="window.location.href='dashboard.html'"
+        class="px-8 py-3 rounded-xl font-semibold text-white text-sm"
+        style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+        🚀 Practice Again
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    if (!api.isLoggedIn()) window.location.href = "../index.html";
+
+    const params = new URLSearchParams(window.location.search);
+    const interviewId = params.get("id");
+
+    if (!interviewId) window.location.href = "dashboard.html";
+
+    // Analysis load karo
+    window.onload = async () => {
+      try {
+        const data = await api.getAnalysis(interviewId);
+        renderReport(data.analysis, data.jobRole);
+      } catch (err) {
+        // Analysis nahi hai toh generate karo
+        try {
+          const data = await api.generateAnalysis(interviewId);
+          // Fir dobara lo
+          const report = await api.getAnalysis(interviewId);
+          renderReport(report.analysis, report.jobRole);
+        } catch (e) {
+          document.getElementById("loadingState").innerHTML = `
+            <div class="text-center">
+              <div class="text-4xl mb-4">❌</div>
+              <p class="text-red-400">Error loading report: ${e.message}</p>
+              <button onclick="window.location.href='dashboard.html'"
+                class="mt-4 px-4 py-2 rounded-lg bg-white/10 text-sm">← Back</button>
+            </div>`;
+        }
+      }
+    };
+
+    // Report render karo
+    function renderReport(analysis, jobRole) {
+      document.getElementById("loadingState").classList.add("hidden");
+      document.getElementById("reportContent").classList.remove("hidden");
+
+      document.getElementById("reportSubtitle").textContent =
+        `${jobRole || "Software Engineer"} Interview · ${new Date().toLocaleDateString("en-IN", {day:"2-digit",month:"long",year:"numeric"})}`;
+
+      // Score ring animate karo
+      const score = analysis.overallScore || 0;
+      const circumference = 345.4;
+      const offset = circumference - (score / 100) * circumference;
+
+      setTimeout(() => {
+        document.getElementById("scoreCircle").style.strokeDashoffset = offset;
+        document.getElementById("scoreCircle").style.stroke = getScoreColor(score);
+      }, 200);
+
+      // Score number animate karo
+      animateNumber("scoreNumber", 0, score, 1500);
+
+      // Grade label
+      const { grade, label } = getGrade(score);
+      document.getElementById("scoreLabel").textContent = label;
+      document.getElementById("scoreGrade").textContent = `Grade: ${grade}`;
+
+      // Skill bars
+      const skills = analysis.skillScores || {};
+      const skillData = [
+        { name: "Communication", key: "communication", color: "#6366f1" },
+        { name: "Technical Knowledge", key: "technicalKnowledge", color: "#8b5cf6" },
+        { name: "Problem Solving", key: "problemSolving", color: "#a855f7" },
+        { name: "Confidence", key: "confidence", color: "#ec4899" },
+      ];
+
+      document.getElementById("skillBars").innerHTML = skillData.map(s => `
+        <div>
+          <div class="flex justify-between mb-1.5">
+            <span class="text-sm text-white/70">${s.name}</span>
+            <span class="text-sm font-semibold" style="color:${s.color}">${skills[s.key] || 0}</span>
+          </div>
+          <div class="h-2 rounded-full bg-white/5">
+            <div class="skill-bar-fill rounded-full" id="bar-${s.key}"
+              style="background:${s.color}; width:0%"></div>
+          </div>
+        </div>`).join("");
+
+      setTimeout(() => {
+        skillData.forEach(s => {
+          const el = document.getElementById(`bar-${s.key}`);
+          if (el) el.style.width = (skills[s.key] || 0) + "%";
+        });
+      }, 300);
+
+      // Strengths
+      document.getElementById("strengthsList").innerHTML =
+        (analysis.strengths || []).map(s => `
+          <li class="flex items-start gap-2 text-sm text-white/70">
+            <span class="text-green-400 mt-0.5 flex-shrink-0">▸</span>${s}
+          </li>`).join("") || "<li class='text-white/40 text-sm'>No strengths listed</li>";
+
+      // Improvements
+      document.getElementById("improvementsList").innerHTML =
+        (analysis.improvements || []).map(i => `
+          <li class="flex items-start gap-2 text-sm text-white/70">
+            <span class="text-yellow-400 mt-0.5 flex-shrink-0">▸</span>${i}
+          </li>`).join("") || "<li class='text-white/40 text-sm'>No improvements listed</li>";
+
+      // Detailed feedback
+      document.getElementById("detailedFeedback").textContent =
+        analysis.detailedFeedback || "No detailed feedback available.";
+    }
+
+    // Score ke hisaab se color
+    function getScoreColor(score) {
+      if (score >= 80) return "#22c55e";
+      if (score >= 60) return "#6366f1";
+      if (score >= 40) return "#f59e0b";
+      return "#ef4444";
+    }
+
+    // Grade calculate karo
+    function getGrade(score) {
+      if (score >= 90) return { grade: "A+", label: "Excellent Performance" };
+      if (score >= 80) return { grade: "A",  label: "Great Performance" };
+      if (score >= 70) return { grade: "B+", label: "Good Performance" };
+      if (score >= 60) return { grade: "B",  label: "Average Performance" };
+      if (score >= 50) return { grade: "C",  label: "Needs Improvement" };
+      return { grade: "D", label: "Significant Improvement Needed" };
+    }
+
+    // Number animation
+    function animateNumber(id, from, to, duration) {
+      const el = document.getElementById(id);
+      const start = performance.now();
+      const update = (time) => {
+        const progress = Math.min((time - start) / duration, 1);
+        el.textContent = Math.round(from + (to - from) * progress);
+        if (progress < 1) requestAnimationFrame(update);
+      };
+      requestAnimationFrame(update);
+    }
+  </script>
+</body>
+</html>
