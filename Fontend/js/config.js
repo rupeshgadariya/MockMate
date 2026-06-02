@@ -1,6 +1,6 @@
 const CONFIG = {
 
-  API_URL: "http://localhost:8080/api",
+  API_URL: "https://mockmate-f3xb.onrender.com/",
 
 
   TOKEN_KEY: "mock_interview_token",
